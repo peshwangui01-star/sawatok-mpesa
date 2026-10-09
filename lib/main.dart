@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 List<CameraDescription> cameras=[];
 const String POCHI="0180879250";
-const String MPESA_BACKEND="https://sawatok-mpesa-1.onrender.com";
 
-Future<void> main() async {
+Future<void> main() async {WidgetsFlutterBinding.ensureInitialized(); try{cameras=await availableCameras();}catch(e){} runApp(SawaTokApp());}
+class SawaTokApp extends StatelessWidget {@override Widget build(BuildContext context)=>MaterialApp(debugShowCheckedModeBanner: false, theme: ThemeData.dark(), home: LoginPage());}
 
 class LoginPage extends StatefulWidget {@override _LoginPageState createState()=>_LoginPageState();}
 class _LoginPageState extends State<LoginPage>{
