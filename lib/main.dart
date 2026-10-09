@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-// SAWATOK PAYMENT CONFIG - Number hidden, name only
-const String pochiNumber = "0180879250";
-const String pochiFull = "254180879250";
-const String businessName = "SawaTok";
-const bool showNumber = false; // ficha number
+// Pochi yako - HIDDEN, user haoni
+const String MERCHANT_POCHI = "0180879250";
+const double MY_CUT = 0.4; // 40% yako
+const double CREATOR_CUT = 0.6;
 
 void main() => runApp(SawaTokApp());
 
@@ -13,110 +12,106 @@ class SawaTokApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'SawaTok M-Pesa',
-      theme: ThemeData(primaryColor: Colors.green),
-      home: MainNav(),
+      title: 'SawaTok',
+      theme: ThemeData.dark(),
+      home: MainScreen(),
     );
   }
 }
 
-class MainNav extends StatefulWidget {
+class MainScreen extends StatefulWidget {
   @override
-  _MainNavState createState() => _MainNavState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainNavState extends State<MainNav> {
-  int _idx = 1;
-  double platformBalance = 0;
-  double creatorBalance = 2450;
-
-  void addGift(double price) {
-    double yourCut = price * 0.4;
-    double creatorCut = price * 0.6;
-    setState(() {
-      platformBalance += yourCut;
-      creatorBalance += creatorCut;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Gift Ksh $price: You Ksh $yourCut, Creator Ksh $creatorCut - Lipa kwa $businessName')),
-    );
-  }
+class _MainScreenState extends State<MainScreen> {
+  int _index = 0;
+  final pages = [FeedPage(), LivePage(), WalletPage(), ProfilePage()];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _index,
+        onTap: (i) => setState(() => _index = i),
+        type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.black,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _idx,
-        onTap: (i) => setState(() => _idx = i),
+        selectedItemColor: Colors.pink,
+        unselectedItemColor: Colors.white70,
         items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'LIVE'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'For You'),
+          BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'Live'),
           BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Wallet'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Store'),
         ],
-      ),
-      body: _idx == 1 ? _buildLive() : _idx == 2 ? _buildWallet() : _buildHome(),
-    );
-  }
-
-  Widget _buildHome() {
-    return Center(child: Text('SawaTok - Karibu!', style: TextStyle(color: Colors.white, fontSize: 24)));
-  }
-
-  Widget _buildLive() {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text('SawaTok LIVE', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _giftBtn('Rose', 20),
-                _giftBtn('Heart', 50),
-                _giftBtn('Car', 500),
-              ],
-            ),
-            SizedBox(height: 20),
-            Text('Lipa kwa $businessName', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-            Text('Pochi imefichwa - salama', style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _giftBtn(String name, double price) {
-    return ElevatedButton(
-      onPressed: () => addGift(price),
-      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-      child: Text('$name\nKSh $price'),
-    );
-  }
-
-  Widget _buildWallet() {
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Card(color: Colors.green.shade900, child: ListTile(title: Text('Your Balance (40%)', style: TextStyle(color: Colors.white)), subtitle: Text('KSh ${platformBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)), trailing: Icon(Icons.trending_up, color: Colors.green))),
-            SizedBox(height: 10),
-            Card(color: Colors.black87, child: ListTile(title: Text('Creator Balance (60%)', style: TextStyle(color: Colors.white)), subtitle: Text('KSh ${creatorBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)), trailing: Icon(Icons.person, color: Colors.white))),
-            SizedBox(height: 20),
-            SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: (){}, icon: Icon(Icons.send), label: Text('Withdraw to M-Pesa'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white, padding: EdgeInsets.all(16)))),
-            SizedBox(height: 10),
-            Text('Every gift: 40% to you, 60% to creator. Automated!', style: TextStyle(color: Colors.grey)),
-            SizedBox(height: 10),
-            Text('Payments via $businessName', style: TextStyle(color: Colors.green, fontSize: 12)),
-          ],
-        ),
       ),
     );
   }
 }
+
+// 1. FEED kama TikTok
+class FeedPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      scrollDirection: Axis.vertical,
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Stack(
+          children: [
+            Container(color: Colors.primaries[index % Colors.primaries.length], child: Center(child: Text("VIDEO ${index+1}\n@creator${index}", textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)))),
+            Positioned(right: 10, bottom: 100, child: Column(
+              children: [
+                IconButton(icon: Icon(Icons.favorite, size: 35, color: Colors.white), onPressed: (){}),
+                Text("2k"),
+                SizedBox(height: 15),
+                IconButton(icon: Icon(Icons.card_giftcard, size: 35, color: Colors.pink), onPressed: () => _showGifts(context)),
+                Text("Gifts"),
+              ],
+            )),
+            Positioned(left: 15, bottom: 30, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("@sawatok_creator", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("#SawaTok Live"),
+            ]))
+          ],
+        );
+      },
+    );
+  }
+
+  void _showGifts(BuildContext context) {
+    showModalBottomSheet(context: context, builder: (_) => Container(
+      height: 250,
+      color: Colors.black87,
+      child: Column(children: [
+        Padding(padding: EdgeInsets.all(15), child: Text("Tuma Gift - Lipa kwa SawaTok", style: TextStyle(fontWeight: FontWeight.bold))),
+        Expanded(child: GridView.count(crossAxisCount: 4, children: [
+          _giftItem(context, "Rose", 10),
+          _giftItem(context, "Heart", 50),
+          _giftItem(context, "Lion", 100),
+          _giftItem(context, "Universe", 500),
+        ]))
+      ]),
+    ));
+  }
+
+  Widget _giftItem(BuildContext context, String name, int price) {
+    double myProfit = price * MY_CUT;
+    return InkWell(
+      onTap: (){
+        // Hapa ndio Daraja itaingia kesho
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name KSH $price - Yako: KSH $myProfit (40%) inaenda Pochi $MERCHANT_POCHI")));
+      },
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.card_giftcard, color: Colors.pink, size: 30),
+        Text(name),
+        Text("KSH $price", style: TextStyle(fontSize: 10, color: Colors.green)),
+      ]),
+    );
+  }
+}
+
+class LivePage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.live_tv, size: 80, color: Colors.red), Text("AV Live 2k Viewers"), ElevatedButton(onPressed: (){}, child: Text("Go Live"))])); }
+class WalletPage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet, size: 80), Text("Wallet Balance: KSH 0"), SizedBox(height: 10), ElevatedButton(onPressed: (){}, child: Text("Top-up via M-Pesa STK"))])); }
+class ProfilePage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircleAvatar(radius: 50), SizedBox(height: 10), Text("My Store - SawaTok Business"), Text("Pochi: Lipa kwa SawaTok (Hidden)") ])); }
