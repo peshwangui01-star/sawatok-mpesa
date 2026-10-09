@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:math';
+import 'dart:async';
 
 List<CameraDescription> cameras = [];
 const String MERCHANT_POCHI = "0180879250";
@@ -32,11 +33,11 @@ class _MainScreenState extends State<MainScreen> {
   );
 }
 
-// --- FOR YOU WITH GIFT ANIMATION ---
+// --- FOR YOU WITH GIFT ---
 class ForYouPage extends StatefulWidget {
   @override _ForYouPageState createState() => _ForYouPageState();
 }
-class _ForYouPageState extends State<ForYouPage> with TickerProviderStateMixin {
+class _ForYouPageState extends State<ForYouPage> {
   List<Widget> _giftAnims = []; int _id = 0;
   void _sendGift(String emoji, String name, int amount) {
     int myCut = (amount * 0.4).toInt();
@@ -62,7 +63,7 @@ class _ForYouPageState extends State<ForYouPage> with TickerProviderStateMixin {
       ])),
       Positioned(bottom: 20, left: 15, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("@creator${i} - AV Live", style: TextStyle(fontWeight: FontWeight.bold)), Text("SawaTok Kenya 🔥 #Live")])),
     ])),
-   ..._giftAnims,
+  ..._giftAnims,
   ]);
   Widget _giftBtn(String emoji, String name, int amount, {bool isBig = false}) => ElevatedButton(
     style: ElevatedButton.styleFrom(backgroundColor: isBig? Colors.pink : Colors.white24, padding: EdgeInsets.symmetric(horizontal: 15, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
@@ -70,7 +71,6 @@ class _ForYouPageState extends State<ForYouPage> with TickerProviderStateMixin {
     child: Column(children: [Text(emoji, style: TextStyle(fontSize: isBig? 28 : 22)), Text(name, style: TextStyle(fontSize: 10)), Text("KSH $amount", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold))]),
   );
 }
-
 class GiftAnim extends StatefulWidget {
   final String emoji; final String name; final int amount; final VoidCallback onDone;
   GiftAnim({required Key key, required this.emoji, required this.name, required this.amount, required this.onDone}) : super(key: key);
@@ -93,10 +93,21 @@ class _GiftAnimState extends State<GiftAnim> with SingleTickerProviderStateMixin
   ]))));
 }
 
-// --- LIVE PAGE ---
+// --- LIVE PAGE WITH REAL-TIME CHAT ---
+class ChatMessage {
+  final String user; final String text; final Color color;
+  ChatMessage(this.user, this.text, this.color);
+}
 class LivePage extends StatefulWidget { @override _LivePageState createState() => _LivePageState(); }
 class _LivePageState extends State<LivePage> {
   CameraController? _controller; bool _isLive = false; bool _initing = true;
+  List<ChatMessage> _chats = [ChatMessage("System", "Welcome to SawaTok LIVE! 🔥", Colors.green)];
+  TextEditingController _chatCtrl = TextEditingController();
+  Timer? _fakeChatTimer;
+  final ScrollController _scrollCtrl = ScrollController();
+  final List<String> fakeUsers = ["Brian", "Aisha", "Kevo", "Njeri", "Moses", "Shiko"];
+  final List<String> fakeMsgs = ["🔥 Moto sana!", "Unafaa sana ❤️", "Tuma Lion 🦁", "Wapi store yako?", "Nimekubali!", "Kiss 💋 pls", "Nataka video yako", "KSH ngapi?"];
+
   @override void initState() { super.initState(); _setup(); }
   Future<void> _setup() async {
     if (cameras.isEmpty) { setState(() => _initing = false); return; }
@@ -104,34 +115,83 @@ class _LivePageState extends State<LivePage> {
     await _controller!.initialize();
     if(mounted) setState(() => _initing = false);
   }
-  @override void dispose() { _controller?.dispose(); super.dispose(); }
+  void _startLive() {
+    setState(() => _isLive = true);
+    _chats.add(ChatMessage("System", "You are LIVE now! Viewers wanaingia...", Colors.pink));
+    // Fake real-time chats every 3 seconds
+    _fakeChatTimer = Timer.periodic(Duration(seconds: 3), (t) {
+      if(!_isLive) return;
+      final user = fakeUsers[Random().nextInt(fakeUsers.length)];
+      final msg = fakeMsgs[Random().nextInt(fakeMsgs.length)];
+      setState(() => _chats.add(ChatMessage(user, msg, Colors.white)));
+      _scrollDown();
+    });
+  }
+  void _stopLive() {
+    setState(() => _isLive = false);
+    _fakeChatTimer?.cancel();
+    _chats.add(ChatMessage("System", "LIVE imeisha. Earnings: KSH ${_chats.length*10} (40% yako)", Colors.red));
+  }
+  void _sendChat() {
+    if(_chatCtrl.text.trim().isEmpty) return;
+    setState(() => _chats.add(ChatMessage("You", _chatCtrl.text, Colors.yellow)));
+    _chatCtrl.clear();
+    _scrollDown();
+  }
+  void _scrollDown() {
+    Future.delayed(Duration(milliseconds: 100), () {
+      if(_scrollCtrl.hasClients) _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent, duration: Duration(milliseconds: 300), curve: Curves.easeOut);
+    });
+  }
+  @override void dispose() { _controller?.dispose(); _fakeChatTimer?.cancel(); _chatCtrl.dispose(); _scrollCtrl.dispose(); super.dispose(); }
+
   @override Widget build(BuildContext context) {
     if (_initing) return Center(child: CircularProgressIndicator());
-    if (_controller == null ||!_controller!.value.isInitialized) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.videocam_off, size: 80), Text("Camera kwa simu halisi tu"), ElevatedButton(onPressed: () => setState(() => _isLive =!_isLive), child: Text(_isLive? "STOP" : "GO LIVE DEMO"))]));
+    Widget cameraBg = (_controller == null ||!_controller!.value.isInitialized)
+     ? Container(color: Colors.grey[900], child: Center(child: Icon(Icons.videocam_off, size: 80)))
+      : SizedBox.expand(child: CameraPreview(_controller!));
+
     return Stack(children: [
-      SizedBox.expand(child: CameraPreview(_controller!)),
-      Positioned(top: 40, left: 15, child: Container(padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _isLive? Colors.red : Colors.black54, borderRadius: BorderRadius.circular(20)), child: Row(children: [Icon(Icons.circle, size: 10, color: Colors.white), SizedBox(width: 5), Text(_isLive? "LIVE 1.2k" : "READY", style: TextStyle(fontWeight: FontWeight.bold))]))),
-      Positioned(bottom: 30, left: 20, right: 20, child: Column(children: [if(_isLive) Container(padding: EdgeInsets.all(8), color: Colors.black54, child: Text("40% -> $MERCHANT_POCHI | 60% Creator", style: TextStyle(fontSize: 11), textAlign: TextAlign.center)), SizedBox(height: 10), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: _isLive? Colors.red : Colors.pink, padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), onPressed: () => setState(() => _isLive =!_isLive), child: Text(_isLive? "STOP LIVE" : "🔴 GO LIVE", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))])),
+      cameraBg,
+      // LIVE Badge
+      Positioned(top: 40, left: 15, child: Container(padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _isLive? Colors.red : Colors.black54, borderRadius: BorderRadius.circular(20)), child: Row(children: [Icon(Icons.circle, size: 10, color: Colors.white), SizedBox(width: 5), Text(_isLive? "LIVE ${_chats.length} viewers" : "READY", style: TextStyle(fontWeight: FontWeight.bold))]))),
+      // Real-time Chat Overlay - Left Bottom
+      Positioned(bottom: 110, left: 10, right: 80, child: Container(height: 180, child: ListView.builder(controller: _scrollCtrl, itemCount: _chats.length, itemBuilder: (ctx, i) {
+        final c = _chats[i];
+        return Padding(padding: EdgeInsets.symmetric(vertical: 2), child: RichText(text: TextSpan(children: [
+          TextSpan(text: "${c.user}: ", style: TextStyle(color: c.color==Colors.white? Colors.pink : c.color, fontWeight: FontWeight.bold, fontSize: 12)),
+          TextSpan(text: c.text, style: TextStyle(color: c.color, fontSize: 12)),
+        ])));
+      }))),
+      // GO LIVE + Chat Input
+      Positioned(bottom: 10, left: 10, right: 10, child: Column(children: [
+        if(_isLive) Row(children: [
+          Expanded(child: TextField(controller: _chatCtrl, style: TextStyle(fontSize: 13), decoration: InputDecoration(hintText: "Chat...", hintStyle: TextStyle(fontSize: 12), filled: true, fillColor: Colors.black54, contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 8), border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none)))),
+          SizedBox(width: 8),
+          GestureDetector(onTap: _sendChat, child: CircleAvatar(backgroundColor: Colors.pink, radius: 20, child: Icon(Icons.send, size: 18))),
+        ]),
+        SizedBox(height: 10),
+        Row(children: [
+          Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: _isLive? Colors.red : Colors.pink, padding: EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), onPressed: () => _isLive? _stopLive() : _startLive(), child: Text(_isLive? "STOP LIVE" : "🔴 GO LIVE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)))),
+          SizedBox(width: 10),
+          if(!_isLive) Expanded(child: Container(padding: EdgeInsets.all(6), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)), child: Text("40% -> $MERCHANT_POCHI", textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)))),
+        ]),
+      ])),
     ]);
   }
 }
 
-class WalletPage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet, size: 80, color: Colors.green), Text("Wallet", style: TextStyle(fontSize: 24)), SizedBox(height: 20), Text("Pochi: $MERCHANT_POCHI"), Text("Balance: KSH 0"), Text("40% ya gifts + store", style: TextStyle(color: Colors.green))])); }
+class WalletPage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet, size: 80, color: Colors.green), Text("Wallet", style: TextStyle(fontSize: 24)), SizedBox(height: 20), Text("Pochi: $MERCHANT_POCHI"), Text("Balance: KSH 0"), Text("40% ya gifts + store + live", style: TextStyle(color: Colors.green))])); }
 
-// --- NEW CREATOR STORE PAGE - PROFILE STORE YA CREATOR ---
-class CreatorStorePage extends StatefulWidget {
-  @override _CreatorStorePageState createState() => _CreatorStorePageState();
-}
+class CreatorStorePage extends StatefulWidget { @override _CreatorStorePageState createState() => _CreatorStorePageState(); }
 class _CreatorStorePageState extends State<CreatorStorePage> with SingleTickerProviderStateMixin {
   late TabController _tab;
   @override void initState() { super.initState(); _tab = TabController(length: 3, vsync: this); }
   @override void dispose() { _tab.dispose(); super.dispose(); }
-
   @override Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.black, title: Text("@AishaKenya 🔥 Store"), actions: [Icon(Icons.settings)]),
+      appBar: AppBar(backgroundColor: Colors.black, title: Text("@AishaKenya 🔥 Store")),
       body: Column(children: [
-        // PROFILE HEADER
         Container(padding: EdgeInsets.all(15), color: Colors.black87, child: Row(children: [
           CircleAvatar(radius: 40, backgroundColor: Colors.pink, child: Text("AK", style: TextStyle(fontSize: 30))),
           SizedBox(width: 15),
@@ -139,66 +199,8 @@ class _CreatorStorePageState extends State<CreatorStorePage> with SingleTickerPr
             Text("Aisha Kenya", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             Text("@aishakenya • AV Creator", style: TextStyle(color: Colors.grey)),
             SizedBox(height: 5),
-            Row(children: [
-              Text("12.5k ", style: TextStyle(fontWeight: FontWeight.bold)), Text("Followers ", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              Text("89 ", style: TextStyle(fontWeight: FontWeight.bold)), Text("Videos ", style: TextStyle(color: Colors.grey, fontSize: 12)),
-              Text("KSH 45k ", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)), Text("Earned", style: TextStyle(color: Colors.grey, fontSize: 12)),
-            ]),
-            SizedBox(height: 5),
-            Text("🔥 Exclusives hapa tu! Unlock na M-Pesa", style: TextStyle(fontSize: 11, color: Colors.pink)),
+            Row(children: [Text("12.5k ", style: TextStyle(fontWeight: FontWeight.bold)), Text("Followers ", style: TextStyle(color: Colors.grey, fontSize: 12)), Text("89 ", style: TextStyle(fontWeight: FontWeight.bold)), Text("Videos ", style: TextStyle(color: Colors.grey, fontSize: 12)), Text("KSH 45k ", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)), Text("Earned", style: TextStyle(color: Colors.grey, fontSize: 12))]),
           ])),
         ])),
-        Container(color: Colors.black, child: TabBar(controller: _tab, indicatorColor: Colors.pink, tabs: [
-          Tab(text: "Videos (12)"), Tab(text: "Pics (34)"), Tab(text: "LIVE Replay"),
-        ])),
-        Expanded(child: TabBarView(controller: _tab, children: [
-          _buildGrid(isVideo: true),
-          _buildGrid(isVideo: false),
-          Center(child: Text("No replay - Go LIVE sasa!")),
-        ])),
-        Container(padding: EdgeInsets.all(10), color: Colors.black54, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Icon(Icons.info, size: 12, color: Colors.green), SizedBox(width: 5),
-          Text("40% yako -> $MERCHANT_POCHI kwa kila mauzo", style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold)),
-        ])),
-      ]),
-    );
-  }
-
-  Widget _buildGrid({required bool isVideo}) {
-    final items = List.generate(12, (i) => {"price": [50, 100, 200, 350, 500][i % 5], "locked": i % 3!= 0});
-    return GridView.builder(padding: EdgeInsets.all(5), gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 5, mainAxisSpacing: 5, childAspectRatio: 0.7), itemCount: items.length, itemBuilder: (ctx, i) {
-      final item = items[i];
-      final locked = item["locked"] as bool;
-      final price = item["price"] as int;
-      return GestureDetector(
-        onTap: () {
-          if (locked) {
-            showDialog(context: context, builder: (_) => AlertDialog(backgroundColor: Colors.black87, title: Text("Unlock ${isVideo? "Video" : "Pic"} ${i+1}?"), content: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(isVideo? Icons.play_circle : Icons.photo, size: 50, color: Colors.pink),
-              SizedBox(height: 10),
-              Text("Bei: KSH $price"),
-              SizedBox(height: 5),
-              Text("Yako: KSH ${(price*0.4).toInt()} (40%)", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              Text("-> $MERCHANT_POCHI", style: TextStyle(fontSize: 10, color: Colors.green)),
-              SizedBox(height: 5),
-              Text("Creator: KSH ${(price*0.6).toInt()} (60%)", style: TextStyle(fontSize: 11)),
-            ]),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel")),
-              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.pink), onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(backgroundColor: Colors.green, content: Text("STK Push KSH $price kwa simu yako! Lipa na M-Pesa - Yako KSH ${(price*0.4).toInt()} -> $MERCHANT_POCHI")));
-              }, child: Text("Lipa na M-Pesa KSH $price")),
-            ]));
-          }
-        },
-        child: Stack(children: [
-          Container(decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(8), image: DecorationImage(image: NetworkImage("https://picsum.photos/200/300?random=$i"), fit: BoxFit.cover, colorFilter: locked? ColorFilter.mode(Colors.black54, BlendMode.darken) : null))),
-          if (locked) Center(child: Icon(Icons.lock, size: 30, color: Colors.white70)),
-          Positioned(bottom: 0, left: 0, right: 0, child: Container(padding: EdgeInsets.symmetric(horizontal: 5, vertical: 3), decoration: BoxDecoration(color: locked? Colors.pink : Colors.green, borderRadius: BorderRadius.only(bottomLeft: Radius.circular(8), bottomRight: Radius.circular(8))), child: Text(locked? "KSH $price" : "UNLOCKED", textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)))),
-          if (isVideo) Positioned(top: 5, left: 5, child: Icon(Icons.play_circle, size: 18, color: Colors.white70)),
-        ]),
-      );
-    });
-  }
-}
+        Container(color: Colors.black, child: TabBar(controller: _tab, indicatorColor: Colors.pink, tabs: [Tab(text: "Videos (12)"), Tab(text: "Pics (34)"), Tab(text: "LIVE Replay")])),
+        Expanded(child: TabBarView(controller: _tab, children: [_buildGrid(isVideo: true), _buildGrid(isVideo: false), Center(child: Text("No replay - Go LIVE sasa!"))]
