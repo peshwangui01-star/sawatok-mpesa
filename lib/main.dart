@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
 
-// Pochi yako - HIDDEN, user haoni
+List<CameraDescription> cameras = [];
 const String MERCHANT_POCHI = "0180879250";
-const double MY_CUT = 0.4; // 40% yako
-const double CREATOR_CUT = 0.6;
 
-void main() => runApp(SawaTokApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    cameras = await availableCameras();
+  } catch(e){}
+  runApp(SawaTokApp());
+}
 
 class SawaTokApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'SawaTok',
       theme: ThemeData.dark(),
       home: MainScreen(),
     );
@@ -26,8 +30,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _index = 0;
-  final pages = [FeedPage(), LivePage(), WalletPage(), ProfilePage()];
-
+  final pages = [ForYouPage(), LivePage(), WalletPage(), StorePage()];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,82 +39,125 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black,
         selectedItemColor: Colors.pink,
-        unselectedItemColor: Colors.white70,
         items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'For You'),
-          BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'Live'),
-          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: 'Wallet'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Store'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "For You"),
+          BottomNavigationBarItem(icon: Icon(Icons.live_tv, color: Colors.red), label: "LIVE"),
+          BottomNavigationBarItem(icon: Icon(Icons.wallet), label: "Wallet"),
+          BottomNavigationBarItem(icon: Icon(Icons.store), label: "Store"),
         ],
       ),
     );
   }
 }
 
-// 1. FEED kama TikTok
-class FeedPage extends StatelessWidget {
+class ForYouPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PageView.builder(
       scrollDirection: Axis.vertical,
-      itemCount: 5,
-      itemBuilder: (context, index) {
+      itemCount: 10,
+      itemBuilder: (ctx, i) {
         return Stack(
           children: [
-            Container(color: Colors.primaries[index % Colors.primaries.length], child: Center(child: Text("VIDEO ${index+1}\n@creator${index}", textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)))),
-            Positioned(right: 10, bottom: 100, child: Column(
-              children: [
-                IconButton(icon: Icon(Icons.favorite, size: 35, color: Colors.white), onPressed: (){}),
-                Text("2k"),
-                SizedBox(height: 15),
-                IconButton(icon: Icon(Icons.card_giftcard, size: 35, color: Colors.pink), onPressed: () => _showGifts(context)),
-                Text("Gifts"),
-              ],
-            )),
-            Positioned(left: 15, bottom: 30, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text("@sawatok_creator", style: TextStyle(fontWeight: FontWeight.bold)),
-              Text("#SawaTok Live"),
-            ]))
+            Container(color: Colors.primaries[i % Colors.primaries.length], child: Center(child: Text("VIDEO ${i+1}\n@creator${i}", textAlign: TextAlign.center, style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)))),
+            Positioned(bottom: 100, right: 15, child: Column(children: [
+              Icon(Icons.favorite, size: 35, color: Colors.white),
+              Text("12k"),
+              SizedBox(height: 20),
+              Icon(Icons.comment, size: 35),
+              Text("2k"),
+              SizedBox(height: 20),
+              GestureDetector(onTap: (){
+                showModalBottomSheet(context: context, builder: (_) => Container(height: 200, child: Column(children: [
+                  SizedBox(height: 20),
+                  Text("Tuma Gift", style: TextStyle(fontSize: 20)),
+                  SizedBox(height: 20),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
+                    ElevatedButton(onPressed: (){Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Rose KSH 10 - Yako KSH 4 (40%) -> $MERCHANT_POCHI")));}, child: Text("🌹 10")),
+                    ElevatedButton(onPressed: (){Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Lion KSH 1000 - Yako KSH 400 (40%) -> $MERCHANT_POCHI")));}, child: Text("🦁 1000")),
+                  ])
+                ])));
+              }, child: Icon(Icons.card_giftcard, size: 35, color: Colors.pink)),
+              Text("Gift"),
+            ])),
+            Positioned(bottom: 20, left: 15, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("@creator${i} - AV Live", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text("SawaTok Kenya 🔥 #Live"),
+            ])),
           ],
         );
       },
     );
   }
+}
 
-  void _showGifts(BuildContext context) {
-    showModalBottomSheet(context: context, builder: (_) => Container(
-      height: 250,
-      color: Colors.black87,
-      child: Column(children: [
-        Padding(padding: EdgeInsets.all(15), child: Text("Tuma Gift - Lipa kwa SawaTok", style: TextStyle(fontWeight: FontWeight.bold))),
-        Expanded(child: GridView.count(crossAxisCount: 4, children: [
-          _giftItem(context, "Rose", 10),
-          _giftItem(context, "Heart", 50),
-          _giftItem(context, "Lion", 100),
-          _giftItem(context, "Universe", 500),
-        ]))
-      ]),
-    ));
+class LivePage extends StatefulWidget {
+  @override
+  _LivePageState createState() => _LivePageState();
+}
+
+class _LivePageState extends State<LivePage> {
+  CameraController? _controller;
+  bool _isLive = false;
+  bool _initing = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _setup();
   }
 
-  Widget _giftItem(BuildContext context, String name, int price) {
-    double myProfit = price * MY_CUT;
-    return InkWell(
-      onTap: (){
-        // Hapa ndio Daraja itaingia kesho
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$name KSH $price - Yako: KSH $myProfit (40%) inaenda Pochi $MERCHANT_POCHI")));
-      },
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.card_giftcard, color: Colors.pink, size: 30),
-        Text(name),
-        Text("KSH $price", style: TextStyle(fontSize: 10, color: Colors.green)),
-      ]),
+  Future<void> _setup() async {
+    if (cameras.isEmpty) {
+      setState(() => _initing = false);
+      return;
+    }
+    _controller = CameraController(cameras[0], ResolutionPreset.medium);
+    await _controller!.initialize();
+    if(mounted) setState(() => _initing = false);
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_initing) return Center(child: CircularProgressIndicator());
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Icon(Icons.videocam_off, size: 80),
+        SizedBox(height: 10),
+        Text("Camera itafanya kwa simu halisi"),
+        Text("Emulator haina camera"),
+        SizedBox(height: 20),
+        ElevatedButton(onPressed: () => setState(() => _isLive = !_isLive), child: Text(_isLive ? "STOP LIVE" : "GO LIVE DEMO")),
+      ]));
+    }
+
+    return Stack(
+      children: [
+        SizedBox.expand(child: CameraPreview(_controller!)),
+        Positioned(top: 40, left: 15, child: Container(padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: _isLive ? Colors.red : Colors.black54, borderRadius: BorderRadius.circular(20)), child: Row(children: [Icon(Icons.circle, size: 10, color: Colors.white), SizedBox(width: 5), Text(_isLive ? "LIVE 1.2k" : "READY", style: TextStyle(fontWeight: FontWeight.bold))]))),
+        Positioned(bottom: 30, left: 20, right: 20, child: Column(children: [
+          if (_isLive) Container(padding: EdgeInsets.all(8), color: Colors.black54, child: Text("Yako 40% inaenda $MERCHANT_POCHI | Creator 60%", style: TextStyle(fontSize: 11), textAlign: TextAlign.center)),
+          SizedBox(height: 10),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: _isLive ? Colors.red : Colors.pink, padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), onPressed: () => setState(() => _isLive = !_isLive), child: Text(_isLive ? "STOP LIVE" : "🔴 GO LIVE - ANZA", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+        ])),
+      ],
     );
   }
 }
 
-class LivePage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.live_tv, size: 80, color: Colors.red), Text("AV Live 2k Viewers"), ElevatedButton(onPressed: (){}, child: Text("Go Live"))])); }
-class WalletPage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet, size: 80), Text("Wallet Balance: KSH 0"), SizedBox(height: 10), ElevatedButton(onPressed: (){}, child: Text("Top-up via M-Pesa STK"))])); }
-class ProfilePage extends StatelessWidget { @override Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircleAvatar(radius: 50), SizedBox(height: 10), Text("My Store - SawaTok Business"), Text("Pochi: Lipa kwa SawaTok (Hidden)") ])); }
+class WalletPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.account_balance_wallet, size: 80, color: Colors.green), Text("Wallet", style: TextStyle(fontSize: 24)), SizedBox(height: 20), Text("Pochi yako: $MERCHANT_POCHI"), Text("Balance: KSH 0"), Text("40% ya gifts zote", style: TextStyle(color: Colors.green))]));
+}
+
+class StorePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.store, size: 80), Text("Creator Store"), Text("Videos & Pics za kuuza")]));
+}
