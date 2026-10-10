@@ -1,15 +1,55 @@
 import 'package:flutter/material.dart';
 const String POCHI="0180879250";
-void main(){runApp(SawaTokApp());}
-class SawaTokApp extends StatelessWidget{@override Widget build(BuildContext c){return MaterialApp(debugShowCheckedModeBanner:false, home:HomePage());}}
+void main(){runApp(MaterialApp(debugShowCheckedModeBanner:false, home:HomePage()));}
 class HomePage extends StatefulWidget{@override _HomePageState createState()=>_HomePageState();}
 class _HomePageState extends State<HomePage>{
-int idx=0;
-int balance=1250;
-TextEditingController amt=TextEditingController();
-void withdraw(){int a=int.tryParse(amt.text)??0; if(a<100||a>balance){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Min 100 Max $balance"))); return;} setState(()=>balance-=a); showDialog(context:context, builder:(_)=>AlertDialog(title:Text("Success"), content:Text("KSH $a imetumwa Pochi $POCHI"), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text("Sawa"))]));}
-Widget forYou(){return Container(color:Colors.black, child:Center(child:Column(mainAxisSize:MainAxisSize.min, children:[Text("VIDEO DEMO", style:TextStyle(color:Colors.white, fontSize:22)), SizedBox(height:20), ElevatedButton(onPressed:(){int my=(100*0.3).toInt(); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Gift 100 - Yako KSH $my, Creator 70")));}, child:Text("Tuma Gift 100 - 30% Yako"))])));}
-Widget live(){return Container(color:Colors.black, child:Center(child:Text("LIVE - Coming Soon", style:TextStyle(color:Colors.white))));}
-Widget wallet(){return Scaffold(backgroundColor:Colors.black, body:Padding(padding:EdgeInsets.all(16), child:Column(children:[SizedBox(height:40), Icon(Icons.wallet, size:60, color:Colors.green), Text("KSH $balance", style:TextStyle(color:Colors.white, fontSize:32, fontWeight:FontWeight.bold)), Text("30% Yako - 70% Creator", style:TextStyle(color:Colors.green)), Text("Pochi: $POCHI", style:TextStyle(color:Colors.white70)), SizedBox(height:20), TextField(controller:amt, keyboardType:TextInputType.number, style:TextStyle(color:Colors.white), decoration:InputDecoration(hintText:"Amount min 100", hintStyle:TextStyle(color:Colors.grey), filled:true, fillColor:Color(0xFF222222), border:OutlineInputBorder(borderRadius:BorderRadius.circular(10)))), SizedBox(height:15), SizedBox(width:double.infinity, height:50, child:ElevatedButton(style:ElevatedButton.styleFrom(backgroundColor:Colors.green), onPressed:withdraw, child:Text("WITHDRAW VIA M-PESA", style:TextStyle(fontWeight:FontWeight.bold)))), Row(mainAxisAlignment:MainAxisAlignment.spaceEvenly, children:[TextButton(onPressed:()=>setState(()=>amt.text="100"), child:Text("100")), TextButton(onPressed:()=>setState(()=>amt.text="500"), child:Text("500")), TextButton(onPressed:()=>setState(()=>amt.text="$balance"), child:Text("ALL"))])])));}
-@override Widget build(BuildContext context){return Scaffold(body:[forYou(), live(), wallet()][idx], bottomNavigationBar:BottomNavigationBar(currentIndex:idx, onTap:(i)=>setState(()=>idx=i), items:[BottomNavigationBarItem(icon:Icon(Icons.home), label:"For You"), BottomNavigationBarItem(icon:Icon(Icons.live_tv), label:"Live"), BottomNavigationBarItem(icon:Icon(Icons.wallet), label:"Wallet")]));}
+int idx=0; int my=1250; int creator=0;
+
+Widget forYou()=>Container(color:Colors.black, child:Center(child:Column(mainAxisSize:MainAxisSize.min, children:[
+Text("FOR YOU", style:TextStyle(color:Colors.white, fontSize:24)),
+SizedBox(height:20),
+Text("Gift hapa = 100% YAKO\nCreator 0%", style:TextStyle(color:Colors.grey), textAlign:TextAlign.center),
+SizedBox(height:20),
+ElevatedButton(onPressed:(){setState(()=>my+=100); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("For You 100: Yako KSH 100 | Creator 0")));}, child:Text("🎁 Gift 100 - Yako 100%")),
+])));
+
+Widget live()=>Container(color:Colors.black, child:Center(child:Column(mainAxisSize:MainAxisSize.min, children:[
+Icon(Icons.live_tv, color:Colors.red, size:50),
+Text("LIVE GIFTS PEKEE", style:TextStyle(color:Colors.white, fontSize:22, fontWeight:FontWeight.bold)),
+SizedBox(height:10),
+Text("Creator 70% | Wewe 30%", style:TextStyle(color:Colors.yellow, fontWeight:FontWeight.bold)),
+SizedBox(height:20),
+ElevatedButton(onPressed:(){
+setState((){creator+=70; my+=30;});
+ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Live 100: Creator 70 | Wewe 30")));
+}, child:Text("🌹 Rose 100")),
+SizedBox(height:10),
+ElevatedButton(onPressed:(){
+setState((){creator+=700; my+=300;});
+ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Live 1000: Creator 700 | Wewe 300")));
+}, child:Text("🦁 Simba 1000")),
+SizedBox(height:20),
+Text("Creator amepata: KSH $creator", style:TextStyle(color:Colors.white)),
+Text("Wewe umepata: KSH $my", style:TextStyle(color:Colors.green)),
+])));
+
+Widget wallet()=>Scaffold(backgroundColor:Colors.black, body:Padding(padding:EdgeInsets.all(20), child:Column(children:[
+SizedBox(height:50),
+Text("KSH $my", style:TextStyle(color:Colors.white, fontSize:40, fontWeight:FontWeight.bold)),
+Text("YAKO", style:TextStyle(color:Colors.green)),
+SizedBox(height:20),
+Container(padding:EdgeInsets.all(15), decoration:BoxDecoration(color:Color(0xFF222222), borderRadius:BorderRadius.circular(10)), child:Column(children:[
+Text("LIVE GIFTS PEKEE", style:TextStyle(color:Colors.yellow, fontWeight:FontWeight.bold)),
+Row(mainAxisAlignment:MainAxisAlignment.spaceBetween, children:[Text("Creator:", style:TextStyle(color:Colors.grey)), Text("70% = KSH $creator", style:TextStyle(color:Colors.white))]),
+Row(mainAxisAlignment:MainAxisAlignment.spaceBetween, children:[Text("Wewe:", style:TextStyle(color:Colors.grey)), Text("30% = Live + 100% For You", style:TextStyle(color:Colors.green))]),
+])),
+SizedBox(height:30),
+SizedBox(width:double.infinity, height:50, child:ElevatedButton(style:ElevatedButton.styleFrom(backgroundColor:Colors.green), onPressed:(){
+if(my<100) return; setState(()=>my-=100); showDialog(context:context, builder:(_)=>AlertDialog(title:Text("Success"), content:Text("KSH 100 Pochi $POCHI"), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text("Sawa"))]));
+}, child:Text("WITHDRAW VIA M-PESA"))),
+Spacer(),
+Text("Pochi: $POCHI", style:TextStyle(color:Colors.grey)),
+])));
+
+@override Widget build(BuildContext context)=>Scaffold(body:[forYou(), live(), wallet()][idx], bottomNavigationBar:BottomNavigationBar(currentIndex:idx, onTap:(i)=>setState(()=>idx=i), items:[BottomNavigationBarItem(icon:Icon(Icons.home), label:"For You"), BottomNavigationBarItem(icon:Icon(Icons.live_tv), label:"Live 70/30"), BottomNavigationBarItem(icon:Icon(Icons.wallet), label:"Wallet")]));
 }
