@@ -1,55 +1,161 @@
 import 'package:flutter/material.dart';
-const String POCHI="0180879250";
-void main(){runApp(MaterialApp(debugShowCheckedModeBanner:false, home:HomePage()));}
-class HomePage extends StatefulWidget{@override _HomePageState createState()=>_HomePageState();}
-class _HomePageState extends State<HomePage>{
-int idx=0; int my=1250; int creator=0;
+import 'package:camera/camera.dart';
 
-Widget forYou()=>Container(color:Colors.black, child:Center(child:Column(mainAxisSize:MainAxisSize.min, children:[
-Text("FOR YOU", style:TextStyle(color:Colors.white, fontSize:24)),
-SizedBox(height:20),
-Text("Gift hapa = 100% YAKO\nCreator 0%", style:TextStyle(color:Colors.grey), textAlign:TextAlign.center),
-SizedBox(height:20),
-ElevatedButton(onPressed:(){setState(()=>my+=100); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("For You 100: Yako KSH 100 | Creator 0")));}, child:Text("🎁 Gift 100 - Yako 100%")),
-])));
+late List<CameraDescription> cameras;
 
-Widget live()=>Container(color:Colors.black, child:Center(child:Column(mainAxisSize:MainAxisSize.min, children:[
-Icon(Icons.live_tv, color:Colors.red, size:50),
-Text("LIVE GIFTS PEKEE", style:TextStyle(color:Colors.white, fontSize:22, fontWeight:FontWeight.bold)),
-SizedBox(height:10),
-Text("Creator 70% | Wewe 30%", style:TextStyle(color:Colors.yellow, fontWeight:FontWeight.bold)),
-SizedBox(height:20),
-ElevatedButton(onPressed:(){
-setState((){creator+=70; my+=30;});
-ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Live 100: Creator 70 | Wewe 30")));
-}, child:Text("🌹 Rose 100")),
-SizedBox(height:10),
-ElevatedButton(onPressed:(){
-setState((){creator+=700; my+=300;});
-ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Live 1000: Creator 700 | Wewe 300")));
-}, child:Text("🦁 Simba 1000")),
-SizedBox(height:20),
-Text("Creator amepata: KSH $creator", style:TextStyle(color:Colors.white)),
-Text("Wewe umepata: KSH $my", style:TextStyle(color:Colors.green)),
-])));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  cameras = await availableCameras();
+  runApp(SawaTokApp());
+}
 
-Widget wallet()=>Scaffold(backgroundColor:Colors.black, body:Padding(padding:EdgeInsets.all(20), child:Column(children:[
-SizedBox(height:50),
-Text("KSH $my", style:TextStyle(color:Colors.white, fontSize:40, fontWeight:FontWeight.bold)),
-Text("YAKO", style:TextStyle(color:Colors.green)),
-SizedBox(height:20),
-Container(padding:EdgeInsets.all(15), decoration:BoxDecoration(color:Color(0xFF222222), borderRadius:BorderRadius.circular(10)), child:Column(children:[
-Text("LIVE GIFTS PEKEE", style:TextStyle(color:Colors.yellow, fontWeight:FontWeight.bold)),
-Row(mainAxisAlignment:MainAxisAlignment.spaceBetween, children:[Text("Creator:", style:TextStyle(color:Colors.grey)), Text("70% = KSH $creator", style:TextStyle(color:Colors.white))]),
-Row(mainAxisAlignment:MainAxisAlignment.spaceBetween, children:[Text("Wewe:", style:TextStyle(color:Colors.grey)), Text("30% = Live + 100% For You", style:TextStyle(color:Colors.green))]),
-])),
-SizedBox(height:30),
-SizedBox(width:double.infinity, height:50, child:ElevatedButton(style:ElevatedButton.styleFrom(backgroundColor:Colors.green), onPressed:(){
-if(my<100) return; setState(()=>my-=100); showDialog(context:context, builder:(_)=>AlertDialog(title:Text("Success"), content:Text("KSH 100 Pochi $POCHI"), actions:[TextButton(onPressed:()=>Navigator.pop(context), child:Text("Sawa"))]));
-}, child:Text("WITHDRAW VIA M-PESA"))),
-Spacer(),
-Text("Pochi: $POCHI", style:TextStyle(color:Colors.grey)),
-])));
+class SawaTokApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: LivePage(),
+    );
+  }
+}
 
-@override Widget build(BuildContext context)=>Scaffold(body:[forYou(), live(), wallet()][idx], bottomNavigationBar:BottomNavigationBar(currentIndex:idx, onTap:(i)=>setState(()=>idx=i), items:[BottomNavigationBarItem(icon:Icon(Icons.home), label:"For You"), BottomNavigationBarItem(icon:Icon(Icons.live_tv), label:"Live 70/30"), BottomNavigationBarItem(icon:Icon(Icons.wallet), label:"Wallet")]));
+class LivePage extends StatefulWidget {
+  @override
+  _LivePageState createState() => _LivePageState();
+}
+
+class _LivePageState extends State<LivePage> {
+  late CameraController _controller;
+  bool _isLive = false;
+  int viewers = 1247;
+  int likes = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CameraController(cameras[0], ResolutionPreset.high);
+    _controller.initialize().then((_) {
+      if (!mounted) return;
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_controller.value.isInitialized) {
+      return Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return Scaffold(
+      body: Stack(
+        children: [
+          // FULL CAMERA
+          SizedBox(
+            width: double.infinity,
+            height: double.infinity,
+            child: CameraPreview(_controller),
+          ),
+          // TOP BAR
+          SafeArea(
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle, color: Colors.white, size: 12),
+                        SizedBox(width: 6),
+                        Text(_isLive? "LIVE • $viewers" : "PREVIEW", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(icon: Icon(Icons.flip_camera_ios, color: Colors.white, size: 30), onPressed: () async {
+                        final newCam = _controller.description == cameras[0]? cameras[1] : cameras[0];
+                        await _controller.dispose();
+                        _controller = CameraController(newCam, ResolutionPreset.high);
+                        await _controller.initialize();
+                        setState(() {});
+                      }),
+                      Icon(Icons.close, color: Colors.white, size: 30),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // BOTTOM GIFTS
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      giftButton("🌹", "10"),
+                      giftButton("👏", "50"),
+                      giftButton("🦁", "1000"),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: _isLive? Colors.grey : Colors.red, padding: EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                      onPressed: () {
+                        setState(() {
+                          _isLive =!_isLive;
+                          if (_isLive) viewers += 50;
+                        });
+                      },
+                      child: Text(_isLive? "END LIVE" : "🔴 GO LIVE", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // HEARTS
+          Positioned(
+            right: 16,
+            bottom: 160,
+            child: Column(
+              children: [
+                IconButton(icon: Icon(Icons.favorite, color: Colors.white, size: 40), onPressed: () => setState(() => likes++)),
+                Text("$likes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                SizedBox(height: 20),
+                Icon(Icons.comment, color: Colors.white, size: 35),
+                Text("342", style: TextStyle(color: Colors.white)),
+                SizedBox(height: 20),
+                Icon(Icons.share, color: Colors.white, size: 35),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget giftButton(String emoji, String price) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white)),
+      child: Column(children: [Text(emoji, style: TextStyle(fontSize: 24)), Text("$price KES", style: TextStyle(color: Colors.white, fontSize: 10))]),
+    );
+  }
 }
