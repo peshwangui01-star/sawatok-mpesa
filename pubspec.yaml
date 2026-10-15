@@ -1,5 +1,5 @@
 name: sawatok_mpesa
-description: SawaTok Live
+description: SawaTok Live - TikTok Clone with Gallery
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,6 +10,8 @@ dependencies:
   flutter:
     sdk: flutter
   camera: ^0.10.5+5
+  image_picker: ^1.0.7
+  video_player: ^2.7.2
 
 flutter:
   uses-material-design: true
