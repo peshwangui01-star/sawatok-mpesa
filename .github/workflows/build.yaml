@@ -1,8 +1,7 @@
 name: Build APK
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,5 +15,5 @@ jobs:
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
-          name: sawatok-debug-apk
+          name: sawatok-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
