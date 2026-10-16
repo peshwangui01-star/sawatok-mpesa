@@ -15,8 +15,7 @@ jobs:
         with:
           flutter-version: '3.22.0'
           channel: 'stable'
-      - name: Create android folder if missing
-        run: flutter create --platforms=android. --project-name sawatok_mpesa
+      - run: flutter create. --platforms=android
       - run: flutter pub get
       - run: flutter pub run flutter_launcher_icons
       - run: flutter build apk --debug
