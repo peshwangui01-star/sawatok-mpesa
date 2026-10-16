@@ -15,6 +15,11 @@ jobs:
         with:
           flutter-version: '3.22.0'
           channel: 'stable'
+      - name: Fix missing android folder
+        run: |
+          if [! -f "android/app/src/main/AndroidManifest.xml" ]; then
+            flutter create --platforms=android.
+          fi
       - run: flutter pub get
       - run: flutter pub run flutter_launcher_icons
       - run: flutter build apk --debug
