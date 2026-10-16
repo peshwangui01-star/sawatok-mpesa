@@ -17,7 +17,6 @@ jobs:
           channel: 'stable'
       - run: flutter create. --platforms=android
       - run: flutter pub get
-      - run: flutter pub run flutter_launcher_icons
       - run: flutter build apk --debug
       - uses: actions/upload-artifact@v4
         with:
